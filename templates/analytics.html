@@ -9,6 +9,36 @@
 <div class="analytics-page">
   <h1 class="analytics-heading">Analytics</h1>
 
+  <div class="stat-tiles">
+    <div class="stat-tile">
+      <span class="stat-tile-label">Average per Transaction</span>
+      <span class="stat-tile-value">
+        {% if insights.average %}₹{{ insights.average }}{% else %}—{% endif %}
+      </span>
+    </div>
+
+    <div class="stat-tile">
+      <span class="stat-tile-label">Highest Expense</span>
+      {% if insights.highest %}
+      <span class="stat-tile-value">₹{{ insights.highest.amount }}</span>
+      <span class="stat-tile-sub">{{ insights.highest.category }} · {{ insights.highest.date }}</span>
+      {% else %}
+      <span class="stat-tile-value">—</span>
+      {% endif %}
+    </div>
+
+    <div class="stat-tile">
+      <span class="stat-tile-label">Month-over-Month</span>
+      {% if mom_percent is not none %}
+      <span class="stat-tile-value {{ 'stat-tile-increase' if mom_percent > 0 else 'stat-tile-decrease' if mom_percent < 0 else '' }}">
+        {{ "%+d" | format(mom_percent) }}%
+      </span>
+      {% else %}
+      <span class="stat-tile-value">—</span>
+      {% endif %}
+    </div>
+  </div>
+
   <section class="analytics-section">
     <h2 class="analytics-section-title">Monthly Spending Trend</h2>
     <div class="trend-chart">
