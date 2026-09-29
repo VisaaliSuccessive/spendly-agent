@@ -19,6 +19,7 @@ from database.queries import (
     delete_expense_by_id,
     get_category_breakdown,
     get_expense_by_id,
+    get_monthly_trend,
     get_recent_transactions,
     get_summary_stats,
     get_user_by_id,
@@ -185,7 +186,10 @@ def profile():
 def analytics():
     if not session.get("user_id"):
         return redirect(url_for("login"))
-    return render_template("analytics.html")
+
+    trend = get_monthly_trend(session["user_id"])
+
+    return render_template("analytics.html", trend=trend)
 
 
 @app.route("/expenses/add", methods=["GET", "POST"])

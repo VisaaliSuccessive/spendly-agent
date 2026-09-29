@@ -48,6 +48,40 @@ def app(db_path, monkeypatch):
         yield flask_app
 
 
+@pytest.fixture
+def client(app):
+    return app.test_client()
+
+
+@pytest.fixture
+def registered_user(client):
+    email = "testuser@example.com"
+    password = "testpass123"
+    client.post(
+        "/register",
+        data={
+            "name": "Test User",
+            "email": email,
+            "password": password,
+            "confirm_password": password,
+        },
+        follow_redirects=True,
+    )
+    conn = db_module.get_db()
+    row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    conn.close()
+    return row["id"], email, password
+
+
+@pytest.fixture
+def auth_client(client, registered_user):
+    user_id, _email, _password = registered_user
+    with client.session_transaction() as sess:
+        sess["user_id"] = user_id
+        sess["user_name"] = "Test User"
+    return client
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -198,3 +232,45 @@ class TestGetSpendingInsights:
 
         assert result["average"] == "100.00"
         assert result["highest"]["amount"] == "100.00"
+
+
+# ===========================================================================
+# Route: GET /analytics — trend chart (PR 2)
+# ===========================================================================
+
+
+class TestAnalyticsTrendChart:
+    def test_unauthenticated_redirects_to_login(self, client, app):
+        response = client.get("/analytics")
+
+        assert response.status_code == 302
+        assert "/login" in response.headers["Location"]
+
+    def test_authenticated_returns_200(self, auth_client):
+        response = auth_client.get("/analytics")
+
+        assert response.status_code == 200
+
+    def test_renders_six_trend_bars(self, auth_client):
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert body.count("trend-bar-col") == 6
+
+    def test_current_month_expense_reflected_in_chart(
+        self, auth_client, registered_user
+    ):
+        user_id, _email, _password = registered_user
+        today = date.today().isoformat()
+        _create_expense(user_id, amount=250.0, date=today)
+
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "250.00" in body
+
+    def test_no_longer_shows_coming_soon_placeholder(self, auth_client):
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "Coming Soon" not in body
