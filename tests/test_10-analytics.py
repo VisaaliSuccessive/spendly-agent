@@ -19,7 +19,7 @@ from werkzeug.security import generate_password_hash
 import database.db as db_module
 from app import app as flask_app
 from database.db import init_db
-from database.queries import get_monthly_trend, get_spending_insights
+from database.queries import get_category_breakdown, get_monthly_trend, get_spending_insights
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -274,3 +274,43 @@ class TestAnalyticsTrendChart:
         body = response.data.decode()
 
         assert "Coming Soon" not in body
+
+
+# ===========================================================================
+# Route: GET /analytics — category breakdown (PR 3)
+# ===========================================================================
+
+
+class TestAnalyticsCategoryBreakdown:
+    def test_category_breakdown_matches_profile_page(
+        self, auth_client, registered_user
+    ):
+        user_id, _email, _password = registered_user
+        _create_expense(user_id, amount=100.0, category="Food")
+        _create_expense(user_id, amount=300.0, category="Bills")
+
+        analytics_body = auth_client.get("/analytics").data.decode()
+        profile_body = auth_client.get("/profile").data.decode()
+
+        expected = get_category_breakdown(user_id)
+        for cat in expected:
+            assert f"₹{cat['amount']}" in analytics_body
+            assert f"₹{cat['amount']}" in profile_body
+
+    def test_empty_state_shown_when_no_expenses(self, auth_client):
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "No expenses yet." in body
+
+    def test_category_rows_rendered_for_seeded_expenses(
+        self, auth_client, registered_user
+    ):
+        user_id, _email, _password = registered_user
+        _create_expense(user_id, amount=50.0, category="Transport")
+
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "Transport" in body
+        assert "cat-bar--transport" in body
