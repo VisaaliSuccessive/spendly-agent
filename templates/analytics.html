@@ -23,5 +23,25 @@
       {% endfor %}
     </div>
   </section>
+
+  <section class="analytics-section">
+    <h2 class="analytics-section-title">By Category</h2>
+    <div class="category-list">
+      {% for cat in categories %}
+      <div class="cat-row">
+        <div class="cat-row-header">
+          <span class="cat-row-name">{{ cat.name }}</span>
+          <span class="cat-row-amount">₹{{ cat.amount }}</span>
+        </div>
+        <div class="cat-bar-track">
+          <div class="cat-bar cat-bar--{{ cat.name | lower }}"
+               style="width: {{ cat.percent }}%"></div>
+        </div>
+      </div>
+      {% else %}
+      <p class="analytics-empty">No expenses yet.</p>
+      {% endfor %}
+    </div>
+  </section>
 </div>
 {% endblock %}

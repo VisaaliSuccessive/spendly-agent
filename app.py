@@ -187,9 +187,11 @@ def analytics():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
-    trend = get_monthly_trend(session["user_id"])
+    uid = session["user_id"]
+    trend = get_monthly_trend(uid)
+    categories = get_category_breakdown(uid)
 
-    return render_template("analytics.html", trend=trend)
+    return render_template("analytics.html", trend=trend, categories=categories)
 
 
 @app.route("/expenses/add", methods=["GET", "POST"])

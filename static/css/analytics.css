@@ -77,3 +77,59 @@
   color: var(--ink-faint);
   margin-top: 0.15rem;
 }
+
+/* Category breakdown */
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.analytics-empty {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+}
+
+.cat-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+}
+
+.cat-row-name {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.cat-row-amount {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cat-bar-track {
+  height: 6px;
+  background: var(--border-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.cat-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.6s ease;
+}
+
+.cat-bar--food          { background: var(--cat-food);          }
+.cat-bar--transport     { background: var(--cat-transport);     }
+.cat-bar--bills         { background: var(--cat-bills);         }
+.cat-bar--health        { background: var(--cat-health);        }
+.cat-bar--entertainment { background: var(--cat-entertainment); }
+.cat-bar--shopping      { background: var(--cat-shopping);      }
+.cat-bar--other         { background: var(--cat-other);         }

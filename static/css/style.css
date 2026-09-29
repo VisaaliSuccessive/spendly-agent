@@ -19,6 +19,21 @@
     --border: #e4e1da;
     --border-soft: #eeebe4;
 
+    --cat-food:             var(--accent);
+    --cat-food-bg:          var(--accent-light);
+    --cat-transport:        var(--accent-2);
+    --cat-transport-bg:     var(--accent-2-light);
+    --cat-bills:            #5b7fa6;
+    --cat-bills-bg:         #e8ecf4;
+    --cat-health:           #b94040;
+    --cat-health-bg:        #fef0f0;
+    --cat-entertainment:    #8b5e83;
+    --cat-entertainment-bg: #f0ebf4;
+    --cat-shopping:         var(--accent-2);
+    --cat-shopping-bg:      var(--accent-2-light);
+    --cat-other:            var(--ink-faint);
+    --cat-other-bg:         var(--border-soft);
+
     --font-display: 'DM Serif Display', Georgia, serif;
     --font-body: 'DM Sans', system-ui, sans-serif;
 
