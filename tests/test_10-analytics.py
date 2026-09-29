@@ -282,7 +282,10 @@ class TestAnalyticsTrendChart:
 
         assert response.status_code == 200
 
-    def test_renders_six_trend_bars(self, auth_client):
+    def test_renders_six_trend_bars(self, auth_client, registered_user):
+        user_id, _email, _password = registered_user
+        _create_expense(user_id, amount=10.0)
+
         response = auth_client.get("/analytics")
         body = response.data.decode()
 
@@ -328,12 +331,6 @@ class TestAnalyticsCategoryBreakdown:
             assert f"₹{cat['amount']}" in analytics_body
             assert f"₹{cat['amount']}" in profile_body
 
-    def test_empty_state_shown_when_no_expenses(self, auth_client):
-        response = auth_client.get("/analytics")
-        body = response.data.decode()
-
-        assert "No expenses yet." in body
-
     def test_category_rows_rendered_for_seeded_expenses(
         self, auth_client, registered_user
     ):
@@ -367,12 +364,6 @@ class TestAnalyticsInsightTiles:
         assert "200.00" in body  # average
         assert "300.00" in body  # highest
 
-    def test_no_expenses_shows_dash_for_tiles(self, auth_client):
-        response = auth_client.get("/analytics")
-        body = response.data.decode()
-
-        assert body.count("—") >= 3
-
     def test_month_over_month_shows_dash_when_previous_month_empty(
         self, auth_client, registered_user
     ):
@@ -401,3 +392,37 @@ class TestAnalyticsInsightTiles:
 
         assert "stat-tile-increase" in body
         assert "+100%" in body
+
+
+# ===========================================================================
+# Route: GET /analytics — whole-page empty state (PR 5)
+# ===========================================================================
+
+
+class TestAnalyticsEmptyState:
+    def test_fresh_user_sees_empty_state_message(self, auth_client):
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert response.status_code == 200
+        assert "No expenses yet" in body
+
+    def test_fresh_user_does_not_see_dashboard_sections(self, auth_client):
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "stat-tiles" not in body
+        assert "trend-chart" not in body
+        assert "category-list" not in body
+
+    def test_user_with_expenses_does_not_see_empty_state(
+        self, auth_client, registered_user
+    ):
+        user_id, _email, _password = registered_user
+        _create_expense(user_id, amount=100.0)
+
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "No expenses yet" not in body
+        assert "stat-tiles" in body
