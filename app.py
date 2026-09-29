@@ -205,13 +205,17 @@ def analytics():
         return redirect(url_for("login"))
 
     uid = session["user_id"]
+    insights = get_spending_insights(uid)
+    # get_spending_insights returns average=None only when the user has zero expenses
+    has_expenses = insights["average"] is not None
+
     trend = get_monthly_trend(uid)
     categories = get_category_breakdown(uid)
-    insights = get_spending_insights(uid)
     mom_percent = _month_over_month_percent(uid, date.today())
 
     return render_template(
         "analytics.html",
+        has_expenses=has_expenses,
         trend=trend,
         categories=categories,
         insights=insights,

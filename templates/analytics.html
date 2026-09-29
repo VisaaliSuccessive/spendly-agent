@@ -9,6 +9,15 @@
 <div class="analytics-page">
   <h1 class="analytics-heading">Analytics</h1>
 
+  {% if not has_expenses %}
+  <div class="analytics-section analytics-empty-state">
+    <h2 class="analytics-empty-state-title">No expenses yet</h2>
+    <p class="analytics-empty-state-desc">
+      Add your first expense to see spending trends, category breakdowns,
+      and insights here.
+    </p>
+  </div>
+  {% else %}
   <div class="stat-tiles">
     <div class="stat-tile">
       <span class="stat-tile-label">Average per Transaction</span>
@@ -68,10 +77,9 @@
                style="width: {{ cat.percent }}%"></div>
         </div>
       </div>
-      {% else %}
-      <p class="analytics-empty">No expenses yet.</p>
       {% endfor %}
     </div>
   </section>
+  {% endif %}
 </div>
 {% endblock %}
