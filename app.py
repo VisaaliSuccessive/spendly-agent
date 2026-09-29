@@ -1,6 +1,6 @@
 import calendar
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import (
     Flask,
@@ -19,8 +19,11 @@ from database.queries import (
     delete_expense_by_id,
     get_category_breakdown,
     get_expense_by_id,
+    get_monthly_trend,
     get_recent_transactions,
+    get_spending_insights,
     get_summary_stats,
+    get_total_for_range,
     get_user_by_id,
     insert_expense,
     update_expense,
@@ -58,6 +61,21 @@ def _months_ago(today, n):
         m += 12
         y -= 1
     return date(y, m, 1).isoformat()
+
+
+def _month_over_month_percent(user_id, today):
+    current_month_start = _months_ago(today, 0)
+    prev_month_start = _months_ago(today, 1)
+    prev_month_end = (
+        date.fromisoformat(current_month_start) - timedelta(days=1)
+    ).isoformat()
+
+    current_total = get_total_for_range(user_id, current_month_start, today.isoformat())
+    prev_total = get_total_for_range(user_id, prev_month_start, prev_month_end)
+
+    if prev_total == 0:
+        return None
+    return round((current_total - prev_total) / prev_total * 100)
 
 
 # ------------------------------------------------------------------ #
@@ -185,7 +203,24 @@ def profile():
 def analytics():
     if not session.get("user_id"):
         return redirect(url_for("login"))
-    return render_template("analytics.html")
+
+    uid = session["user_id"]
+    insights = get_spending_insights(uid)
+    # get_spending_insights returns average=None only when the user has zero expenses
+    has_expenses = insights["average"] is not None
+
+    trend = get_monthly_trend(uid)
+    categories = get_category_breakdown(uid)
+    mom_percent = _month_over_month_percent(uid, date.today())
+
+    return render_template(
+        "analytics.html",
+        has_expenses=has_expenses,
+        trend=trend,
+        categories=categories,
+        insights=insights,
+        mom_percent=mom_percent,
+    )
 
 
 @app.route("/expenses/add", methods=["GET", "POST"])

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from database.db import get_db
 
@@ -141,6 +141,21 @@ def get_summary_stats(user_id, date_from=None, date_to=None):
     }
 
 
+def get_total_for_range(user_id, date_from=None, date_to=None):
+    date_clause, date_params = _build_date_filter(date_from, date_to)
+    params = [user_id] + date_params
+
+    conn = get_db()
+    row = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? "
+        + date_clause,
+        params,
+    ).fetchone()
+    conn.close()
+
+    return row["total"]
+
+
 def get_category_breakdown(user_id, date_from=None, date_to=None):
     date_clause, date_params = _build_date_filter(date_from, date_to)
     params = [user_id] + date_params
@@ -170,3 +185,87 @@ def get_category_breakdown(user_id, date_from=None, date_to=None):
         }
         for r, pct in zip(rows, pcts)
     ]
+
+
+def _last_n_months(months, today=None):
+    today = today or date.today()
+    y, m = today.year, today.month
+    month_starts = []
+    for _ in range(months):
+        month_starts.append((y, m))
+        m -= 1
+        if m == 0:
+            m, y = 12, y - 1
+    month_starts.reverse()
+    return month_starts
+
+
+def get_monthly_trend(user_id, months=6):
+    month_starts = _last_n_months(months)
+    range_start = date(*month_starts[0], 1).isoformat()
+
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT strftime('%Y-%m', date) AS ym, SUM(amount) AS total "
+        "FROM expenses WHERE user_id = ? AND date >= ? GROUP BY ym",
+        (user_id, range_start),
+    ).fetchall()
+    conn.close()
+
+    totals_by_ym = {r["ym"]: r["total"] for r in rows}
+
+    months_data = [
+        {
+            "label": date(y, m, 1).strftime("%b %Y"),
+            "raw_total": totals_by_ym.get(f"{y:04d}-{m:02d}", 0) or 0,
+        }
+        for y, m in month_starts
+    ]
+
+    max_total = max((entry["raw_total"] for entry in months_data), default=0)
+
+    return [
+        {
+            "label": entry["label"],
+            "total": "{:,.2f}".format(entry["raw_total"]),
+            "percent": int(entry["raw_total"] / max_total * 100) if max_total else 0,
+        }
+        for entry in months_data
+    ]
+
+
+def get_spending_insights(user_id, date_from=None, date_to=None):
+    date_clause, date_params = _build_date_filter(date_from, date_to)
+    params = [user_id] + date_params
+
+    conn = get_db()
+    avg_row = conn.execute(
+        "SELECT AVG(amount) AS avg_amount, COUNT(*) AS count "
+        "FROM expenses WHERE user_id = ? " + date_clause,
+        params,
+    ).fetchone()
+
+    highest_row = conn.execute(
+        "SELECT amount, category, date FROM expenses WHERE user_id = ? "
+        + date_clause
+        + " ORDER BY amount DESC LIMIT 1",
+        params,
+    ).fetchone()
+    conn.close()
+
+    average = (
+        "{:,.2f}".format(avg_row["avg_amount"]) if avg_row["count"] > 0 else None
+    )
+    highest = (
+        {
+            "amount": "{:,.2f}".format(highest_row["amount"]),
+            "category": highest_row["category"],
+            "date": datetime.strptime(highest_row["date"], "%Y-%m-%d").strftime(
+                "%d %b %Y"
+            ),
+        }
+        if highest_row is not None
+        else None
+    )
+
+    return {"average": average, "highest": highest}

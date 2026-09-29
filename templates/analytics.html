@@ -7,42 +7,79 @@
 
 {% block content %}
 <div class="analytics-page">
-  <div class="cs-bg-blob cs-blob-tl"></div>
-  <div class="cs-bg-blob cs-blob-br"></div>
+  <h1 class="analytics-heading">Analytics</h1>
 
-  <div class="cs-card">
-    <div class="cs-corner cs-corner-tr"></div>
-    <div class="cs-corner cs-corner-bl"></div>
-
-    <div class="cs-icon-wrap">
-      <div class="cs-icon-glow"></div>
-      <div class="cs-icon-box">
-        <svg class="cs-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-    </div>
-
-    <div class="cs-badge">
-      <span>Coming Soon</span>
-    </div>
-
-    <h2 class="cs-title">Advanced Analytics</h2>
-
-    <p class="cs-desc">
-      We're working on powerful insights and visualisations to help you
-      understand your spending patterns better.
+  {% if not has_expenses %}
+  <div class="analytics-section analytics-empty-state">
+    <h2 class="analytics-empty-state-title">No expenses yet</h2>
+    <p class="analytics-empty-state-desc">
+      Add your first expense to see spending trends, category breakdowns,
+      and insights here.
     </p>
-
-    <div class="cs-dots">
-      <div class="cs-dot" style="animation-delay: 0s"></div>
-      <div class="cs-dot" style="animation-delay: 0.2s"></div>
-      <div class="cs-dot" style="animation-delay: 0.4s"></div>
-    </div>
-    <p class="cs-tagline">We're crafting something special</p>
-
-    <div class="cs-bottom-line"></div>
   </div>
+  {% else %}
+  <div class="stat-tiles">
+    <div class="stat-tile">
+      <span class="stat-tile-label">Average per Transaction</span>
+      <span class="stat-tile-value">
+        {% if insights.average %}₹{{ insights.average }}{% else %}—{% endif %}
+      </span>
+    </div>
+
+    <div class="stat-tile">
+      <span class="stat-tile-label">Highest Expense</span>
+      {% if insights.highest %}
+      <span class="stat-tile-value">₹{{ insights.highest.amount }}</span>
+      <span class="stat-tile-sub">{{ insights.highest.category }} · {{ insights.highest.date }}</span>
+      {% else %}
+      <span class="stat-tile-value">—</span>
+      {% endif %}
+    </div>
+
+    <div class="stat-tile">
+      <span class="stat-tile-label">Month-over-Month</span>
+      {% if mom_percent is not none %}
+      <span class="stat-tile-value {{ 'stat-tile-increase' if mom_percent > 0 else 'stat-tile-decrease' if mom_percent < 0 else '' }}">
+        {{ "%+d" | format(mom_percent) }}%
+      </span>
+      {% else %}
+      <span class="stat-tile-value">—</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="analytics-section">
+    <h2 class="analytics-section-title">Monthly Spending Trend</h2>
+    <div class="trend-chart">
+      {% for month in trend %}
+      <div class="trend-bar-col">
+        <div class="trend-bar-track">
+          <div class="trend-bar" style="height: {{ month.percent }}%"></div>
+        </div>
+        <span class="trend-amount">₹{{ month.total }}</span>
+        <span class="trend-label">{{ month.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="analytics-section">
+    <h2 class="analytics-section-title">By Category</h2>
+    <div class="category-list">
+      {% for cat in categories %}
+      <div class="cat-row">
+        <div class="cat-row-header">
+          <span class="cat-row-name">{{ cat.name }}</span>
+          <span class="cat-row-amount">₹{{ cat.amount }}</span>
+        </div>
+        <div class="cat-bar-track">
+          <div class="cat-bar cat-bar--{{ cat.name | lower }}"
+               style="width: {{ cat.percent }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}
