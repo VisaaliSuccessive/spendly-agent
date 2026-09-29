@@ -141,6 +141,21 @@ def get_summary_stats(user_id, date_from=None, date_to=None):
     }
 
 
+def get_total_for_range(user_id, date_from=None, date_to=None):
+    date_clause, date_params = _build_date_filter(date_from, date_to)
+    params = [user_id] + date_params
+
+    conn = get_db()
+    row = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? "
+        + date_clause,
+        params,
+    ).fetchone()
+    conn.close()
+
+    return row["total"]
+
+
 def get_category_breakdown(user_id, date_from=None, date_to=None):
     date_clause, date_params = _build_date_filter(date_from, date_to)
     params = [user_id] + date_params

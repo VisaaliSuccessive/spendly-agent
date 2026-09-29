@@ -29,6 +29,47 @@
   margin: 0 0 1.5rem;
 }
 
+/* Quick insight stat tiles */
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-tile {
+  background: var(--paper-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.stat-tile-label {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.stat-tile-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--ink);
+}
+
+.stat-tile-sub {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+.stat-tile-increase { color: var(--danger); }
+.stat-tile-decrease { color: var(--accent); }
+
 /* Monthly trend bar chart */
 .trend-chart {
   display: flex;

@@ -11,7 +11,7 @@ PR 1 — DB layer only:
 - Unit: get_spending_insights() respects an optional date range
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import pytest
 from werkzeug.security import generate_password_hash
@@ -19,7 +19,12 @@ from werkzeug.security import generate_password_hash
 import database.db as db_module
 from app import app as flask_app
 from database.db import init_db
-from database.queries import get_category_breakdown, get_monthly_trend, get_spending_insights
+from database.queries import (
+    get_category_breakdown,
+    get_monthly_trend,
+    get_spending_insights,
+    get_total_for_range,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -235,6 +240,32 @@ class TestGetSpendingInsights:
 
 
 # ===========================================================================
+# Unit tests for get_total_for_range()
+# ===========================================================================
+
+
+class TestGetTotalForRange:
+    def test_no_expenses_returns_zero(self, app):
+        user_id = _create_user("Owner", "owner@example.com")
+
+        assert get_total_for_range(user_id) == 0
+
+    def test_sums_only_matching_date_range(self, app):
+        user_id = _create_user("Owner", "owner@example.com")
+        _create_expense(user_id, amount=100.0, date="2026-01-15")
+        _create_expense(user_id, amount=900.0, date="2026-04-15")
+
+        assert get_total_for_range(user_id, "2026-01-01", "2026-01-31") == 100.0
+
+    def test_ignores_expenses_belonging_to_other_users(self, app):
+        user_id = _create_user("Owner", "owner@example.com")
+        other_id = _create_user("Other", "other@example.com")
+        _create_expense(other_id, amount=500.0)
+
+        assert get_total_for_range(user_id) == 0
+
+
+# ===========================================================================
 # Route: GET /analytics — trend chart (PR 2)
 # ===========================================================================
 
@@ -314,3 +345,59 @@ class TestAnalyticsCategoryBreakdown:
 
         assert "Transport" in body
         assert "cat-bar--transport" in body
+
+
+# ===========================================================================
+# Route: GET /analytics — insight stat tiles (PR 4)
+# ===========================================================================
+
+
+class TestAnalyticsInsightTiles:
+    def test_average_and_highest_tiles_render_correct_values(
+        self, auth_client, registered_user
+    ):
+        user_id, _email, _password = registered_user
+        today = date.today().isoformat()
+        _create_expense(user_id, amount=100.0, category="Food", date=today)
+        _create_expense(user_id, amount=300.0, category="Bills", date=today)
+
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "200.00" in body  # average
+        assert "300.00" in body  # highest
+
+    def test_no_expenses_shows_dash_for_tiles(self, auth_client):
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert body.count("—") >= 3
+
+    def test_month_over_month_shows_dash_when_previous_month_empty(
+        self, auth_client, registered_user
+    ):
+        user_id, _email, _password = registered_user
+        today = date.today().isoformat()
+        _create_expense(user_id, amount=100.0, date=today)
+
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "stat-tile-increase" not in body
+        assert "stat-tile-decrease" not in body
+
+    def test_month_over_month_percent_increase_rendered(
+        self, auth_client, registered_user
+    ):
+        user_id, _email, _password = registered_user
+        today = date.today()
+        prev_month_last_day = today.replace(day=1) - timedelta(days=1)
+
+        _create_expense(user_id, amount=100.0, date=prev_month_last_day.isoformat())
+        _create_expense(user_id, amount=200.0, date=today.isoformat())
+
+        response = auth_client.get("/analytics")
+        body = response.data.decode()
+
+        assert "stat-tile-increase" in body
+        assert "+100%" in body
